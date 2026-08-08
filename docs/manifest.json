@@ -1,0 +1,1 @@
+{"name": "Oriona", "short_name": "Oriona", "display": "standalone", "background_color": "#fbf5f2", "theme_color": "#fbf5f2", "start_url": ".", "icons": [{"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}]}
