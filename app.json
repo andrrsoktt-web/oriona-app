@@ -19,7 +19,7 @@
     "ios": {
       "bundleIdentifier": "com.olyaursul.oriona",
       "supportsTablet": false,
-      "buildNumber": "7",
+      "buildNumber": "8",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

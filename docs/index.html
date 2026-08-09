@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -198,7 +198,7 @@ h2{font-family:'Playfair Display',serif;font-weight:500;font-size:28px;letter-sp
 .ball-wrap{display:flex;flex-direction:column;align-items:center;margin-top:10px}
 .ball{width:220px;height:220px;border-radius:50%;position:relative;cursor:grab;user-select:none;background:radial-gradient(circle at 34% 28%,var(--b1) 0%,var(--b2) 45%,var(--b3) 100%);box-shadow:0 22px 50px rgba(var(--ball-rgb),.4),inset 0 3px 16px rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center}
 .ball .win{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 50% 42%,#fff,var(--b4));display:flex;align-items:center;justify-content:center;box-shadow:inset 0 3px 12px rgba(var(--ball-rgb),.3)}
-.ball .win span{font-family:'Playfair Display';font-size:30px;color:var(--rose);opacity:0;transition:opacity .5s}
+.ball .win span{font-family:'Playfair Display';font-size:30px;line-height:1.15;color:var(--rose);opacity:0;transition:opacity .5s;width:140px;flex:0 0 auto;text-align:center;display:block}
 .ball .win span.show{opacity:1}
 .ball.shaking{animation:shake .6s ease}
 @keyframes shake{0%,100%{transform:translateX(0) rotate(0)}20%{transform:translateX(-12px) rotate(-4deg)}40%{transform:translateX(10px) rotate(3deg)}60%{transform:translateX(-7px) rotate(-2deg)}80%{transform:translateX(5px) rotate(2deg)}}
@@ -3026,6 +3026,19 @@ function nudgeQuestion(){
   if(el&&el.focus)el.focus();
   if(navigator.vibrate)navigator.vibrate(20);
 }
+// подобрать кегль ответа так, чтобы самое длинное слово помещалось в белый кружок
+function fitAnswer(el){
+  if(!el)return;
+  var box=125,max=30,min=16;
+  el.style.fontSize=max+'px';
+  var probe=document.createElement('span');
+  probe.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font-family:\'Playfair Display\';font-size:'+max+'px';
+  document.body.appendChild(probe);
+  var words=(el.textContent||'').split(/\s+/),widest=0;
+  for(var i=0;i<words.length;i++){probe.textContent=words[i];widest=Math.max(widest,probe.offsetWidth);}
+  document.body.removeChild(probe);
+  if(widest>box)el.style.fontSize=Math.max(min,Math.floor(max*box/widest))+'px';
+}
 function askBall(){
   if(busy)return;
   if(!hasQuestion()){nudgeQuestion();return;}
@@ -3036,7 +3049,7 @@ function askBall(){
   if(navigator.vibrate)navigator.vibrate(60);
   setTimeout(()=>{ball.classList.remove('shaking');
     const rnd=seed((S.chart?S.chart.planets[0].lon|0:0)+'|'+q+'|'+Date.now());
-    ans.textContent=rnd()<0.5?t('b_yes'):t('b_no');ans.classList.add('show');busy=false;},620);
+    ans.textContent=rnd()<0.5?t('b_yes'):t('b_no');fitAnswer(ans);ans.classList.add('show');busy=false;},620);
 }
 document.getElementById('ball').addEventListener('pointerdown',askBall);
 document.getElementById('q').addEventListener('input',syncBall);
@@ -3147,7 +3160,7 @@ PLANET_FRAME:{Moon:PLANET_FRAME['Луна'],Mercury:PLANET_FRAME['Меркури
  Jupiter:PLANET_FRAME['Юпитер'],Saturn:PLANET_FRAME['Сатурн'],Uranus:PLANET_FRAME['Уран'],Neptune:PLANET_FRAME['Нептун'],Pluto:PLANET_FRAME['Плутон']},
 tpl:{
  epigraph:(base,key)=>'«'+base+' Здесь ты — '+key+'.»',
- sprout:g=>'✿ Твой росток: '+g+'.',
+ sprout:g=>'✿ Твоя точка роста: '+g+'.',
  ascIntro:'С первого взгляда тебя считывают именно так.',
  retro:'Планета ретроградна — эта тема развёрнута внутрь: она работает медленнее и глубже, требует внутренней проработки, прежде чем проявиться вовне. Часто это про пересмотр, возвращение к своему и опору на собственный опыт, а не на внешние правила.',
  domOther:(sunSign,elem,domSigns,trait)=>'Несмотря на то, что твой солнечный знак — '+sunSign+', в твоей карте сильнее всего звучит стихия «'+elem+'»: в тебе много и от знаков '+domSigns+'. Проще говоря, '+trait+'.',
@@ -3359,7 +3372,7 @@ SIGN_KEY:["like a spark","like a warm stone in the sun","like a light wind","lik
  "like a road to the horizon","like a summit in morning mist","like a flash of the new","like soft mist at dawn"],
 tpl:{
  epigraph:(base,key)=>'\u00ab'+base+' Here you are '+key+'.\u00bb',
- sprout:g=>'\u273f Your shoot: '+g+'.',
+ sprout:g=>'\u273f Your growth area: '+g+'.',
  ascIntro:"This is exactly how you are read at first glance.",
  retro:"The planet is retrograde — this theme is turned inward: it works more slowly and more deeply and asks for inner work before it shows outside. Often it is about review, coming back to your own, and leaning on your own experience rather than outside rules.",
  domOther:(sunSign,elem,domSigns,trait)=>`Even though your Sun sign is ${sunSign}, the element that sounds loudest in your chart is ${elem}: there is a lot of ${domSigns} in you. Put simply, ${trait}.`,
@@ -3570,7 +3583,7 @@ SIGN_KEY:["como una chispa","como una piedra tibia al sol","como un viento liger
  "como un camino al horizonte","como una cumbre en la niebla del alba","como un destello de lo nuevo","como niebla suave al amanecer"],
 tpl:{
  epigraph:(base,key)=>'«'+base+' Aquí eres '+key+'.»',
- sprout:g=>'✿ Tu brote: '+g+'.',
+ sprout:g=>'✿ Tu punto de crecimiento: '+g+'.',
  ascIntro:'Así es exactamente como te leen a primera vista.',
  retro:'El planeta está retrógrado: este tema mira hacia dentro, funciona más despacio y más hondo y pide trabajo interior antes de mostrarse fuera. Suele ir de revisar, volver a lo propio y apoyarse en la experiencia vivida más que en las reglas de fuera.',
  domOther:(sunSign,elem,domSigns,trait)=>'Aunque tu signo solar es '+sunSign+', el elemento que más suena en tu carta es '+elem+': hay mucho de '+domSigns+' en ti. Dicho simple, '+trait+'.',
@@ -3782,7 +3795,7 @@ SIGN_KEY:["comme une étincelle","comme une pierre tiède au soleil","comme un v
  "comme une route vers l\u2019horizon","comme un sommet dans la brume du matin","comme un éclat de nouveau","comme une brume douce à l\u2019aube"],
 tpl:{
  epigraph:(base,key)=>'«'+base+' Ici tu es '+key+'.»',
- sprout:g=>'✿ Ta pousse : '+g+'.',
+ sprout:g=>'✿ Ton axe de progression : '+g+'.',
  ascIntro:'C\u2019est exactement ainsi qu\u2019on te lit au premier regard.',
  retro:'La planète est rétrograde : ce thème est tourné vers l\u2019intérieur, il travaille plus lentement et plus profondément et demande un travail intérieur avant de se montrer au-dehors. Souvent il s\u2019agit de révision, de retour à ce qui est à toi et d\u2019appui sur ta propre expérience plutôt que sur les règles extérieures.',
  domOther:(sunSign,elem,domSigns,trait)=>'Même si ton signe solaire est '+sunSign+', l\u2019élément qui sonne le plus fort dans ton thème est '+elem+' : il y a beaucoup de '+domSigns+' en toi. Autrement dit, '+trait+'.',
@@ -3994,7 +4007,7 @@ SIGN_KEY:["як іскра","як теплий камінь на сонці","я
  "як дорога до обрію","як вершина в ранковому тумані","як спалах нового","як м\u2019який туман на світанку"],
 tpl:{
  epigraph:(base,key)=>'«'+base+' Тут ти — '+key+'.»',
- sprout:g=>'✿ Твій паросток: '+g+'.',
+ sprout:g=>'✿ Твоя точка зростання: '+g+'.',
  ascIntro:'З першого погляду тебе зчитують саме так.',
  retro:'Планета ретроградна — ця тема розвернута всередину: вона працює повільніше й глибше і потребує внутрішньої роботи, перш ніж виявитися назовні. Часто це про перегляд, повернення до свого і опору на власний досвід, а не на зовнішні правила.',
  domOther:(sunSign,elem,domSigns,trait)=>'Попри те, що твій сонячний знак — '+sunSign+', у твоїй карті найсильніше звучить стихія «'+elem+'»: у тобі багато й від знаків '+domSigns+'. Простіше кажучи, '+trait+'.',
