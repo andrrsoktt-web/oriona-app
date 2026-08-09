@@ -98,7 +98,9 @@ h2{font-family:'Playfair Display',serif;font-weight:500;font-size:28px;letter-sp
 
 /* date wheels */
 .wheels{display:flex;gap:10px;margin-top:20px}
-.wheel{flex:1;position:relative;height:180px;overflow:hidden;border-radius:18px;border:1.5px solid var(--line);background:#fff}
+.wheel{flex:1;position:relative;height:180px;overflow:hidden;border-radius:18px;border:1.5px solid var(--line);background:#fff;touch-action:none;-webkit-user-select:none;user-select:none;cursor:grab}
+.wheel:active{cursor:grabbing}
+.wheel .it{transition:color .15s,transform .15s}
 .wheel .track{position:absolute;left:0;right:0;top:0;will-change:transform}
 .wheel .it{height:36px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;color:var(--muted);scroll-snap-align:center}
 .wheel .it.big{font-weight:700}
@@ -1311,28 +1313,88 @@ function nav(id,i){if((id==='s-compat'||id==='s-ball')&&!isPrem()){openPaywall()
 const ITEM_H=36;
 function buildWheel(el,items,initIdx,onChange){
   const track=el.querySelector('.track');
-  const pad=2; // padding items so first/last can center (sel at index 2)
+  const pad=2; // пустые элементы, чтобы крайние значения вставали по центру
   let html='';
   for(let i=0;i<pad;i++)html+='<div class="it"></div>';
   items.forEach(t=>html+=`<div class="it">${t}</div>`);
   for(let i=0;i<pad;i++)html+='<div class="it"></div>';
   track.innerHTML=html;
+
   let idx=initIdx;
-  function setY(i,anim){track.style.transition=anim?'transform .18s ease':'none';track.style.transform=`translateY(${-(i)*ITEM_H}px)`;highlight(i);}
-  function highlight(i){track.querySelectorAll('.it').forEach((n,k)=>n.classList.toggle('big',k===i+pad));}
+  const last=items.length-1;
+  const clamp=i=>Math.max(0,Math.min(last,i));
+
+  function setY(i,anim){
+    track.style.transition=anim?'transform .26s cubic-bezier(.22,.61,.36,1)':'none';
+    track.style.transform=`translateY(${-(i)*ITEM_H}px)`;
+    highlight(i);
+  }
+  function highlight(i){
+    track.querySelectorAll('.it').forEach((n,k)=>n.classList.toggle('big',k===i+pad));
+  }
+  function commit(i,anim){
+    i=clamp(Math.round(i));
+    const changed=(i!==idx);
+    idx=i;setY(idx,anim!==false);
+    if(changed)onChange(idx);
+  }
   setY(idx,false);
-  let startY=0,startIdx=0,dragging=false;
-  function pointerFromE(e){return e.touches?e.touches[0].clientY:e.clientY;}
-  el.addEventListener('pointerdown',e=>{dragging=true;startY=pointerFromE(e);startIdx=idx;track.style.transition='none';el.setPointerCapture&&el.setPointerCapture(e.pointerId);});
-  el.addEventListener('pointermove',e=>{if(!dragging)return;const dy=pointerFromE(e)-startY;const cur=startIdx-dy/ITEM_H;track.style.transform=`translateY(${-cur*ITEM_H}px)`;});
-  function end(e){if(!dragging)return;dragging=false;const dy=pointerFromE(e)-startY;let ni=Math.round(startIdx-dy/ITEM_H);ni=Math.max(0,Math.min(items.length-1,ni));idx=ni;setY(idx,true);onChange(idx);}
-  el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('pointerleave',end);
-  let wheelLock=0;
-  el.addEventListener('wheel',e=>{e.preventDefault();
-    const now=Date.now(); if(now-wheelLock<110) return; wheelLock=now;
-    idx=Math.max(0,Math.min(items.length-1,idx+(e.deltaY>0?1:-1)));setY(idx,true);onChange(idx);
+
+  let startY=0,startIdx=0,dragging=false,moved=false,lastY=0,lastT=0,vel=0,pid=null;
+  const yOf=e=>(e.touches&&e.touches.length?e.touches[0].clientY:e.clientY);
+  const now=e=>(e.timeStamp||Date.now());
+
+  el.addEventListener('pointerdown',e=>{
+    dragging=true;moved=false;pid=e.pointerId;
+    startY=lastY=yOf(e);startIdx=idx;vel=0;lastT=now(e);
+    track.style.transition='none';
+    try{el.setPointerCapture&&el.setPointerCapture(e.pointerId);}catch(err){}
+  });
+
+  el.addEventListener('pointermove',e=>{
+    if(!dragging)return;
+    e.preventDefault();
+    const y=yOf(e),t=now(e),dt=Math.max(1,t-lastT);
+    // сглаженная скорость, чтобы одиночный рывок не давал выброса
+    vel=0.7*((y-lastY)/dt)+0.3*vel;
+    lastY=y;lastT=t;
+    const dy=y-startY;
+    if(Math.abs(dy)>4)moved=true;
+    // за краями списка тянется вдвое туже — привычное «резиновое» поведение
+    let cur=startIdx-dy/ITEM_H;
+    if(cur<0)cur=cur/2;
+    else if(cur>last)cur=last+(cur-last)/2;
+    track.style.transform=`translateY(${-cur*ITEM_H}px)`;
   },{passive:false});
-  return {get:()=>idx,set:i=>{idx=i;setY(i,false);}};
+
+  function finish(e){
+    if(!dragging)return;
+    dragging=false;
+    try{pid!==null&&el.releasePointerCapture&&el.releasePointerCapture(pid);}catch(err){}
+    pid=null;
+    if(!moved){
+      // короткий тап — выбрать значение под пальцем
+      const r=el.getBoundingClientRect();
+      const off=Math.round((yOf(e)-r.top-r.height/2)/ITEM_H);
+      commit(idx+off);
+      return;
+    }
+    const dy=yOf(e)-startY;
+    // инерция по скорости броска, ограничена, чтобы не улетало
+    const fling=Math.max(-6,Math.min(6,vel*90/ITEM_H));
+    commit(startIdx-dy/ITEM_H-fling);
+  }
+  el.addEventListener('pointerup',finish);
+  el.addEventListener('pointercancel',finish);
+
+  let wheelLock=0;
+  el.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const t=Date.now(); if(t-wheelLock<110)return; wheelLock=t;
+    commit(idx+(e.deltaY>0?1:-1));
+  },{passive:false});
+
+  return {get:()=>idx,set:i=>{idx=clamp(i);setY(idx,false);}};
 }
 let W={};
 function daysInMonth(m,y){return new Date(y,m+1,0).getDate();}
