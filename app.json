@@ -19,7 +19,7 @@
     "ios": {
       "bundleIdentifier": "com.olyaursul.oriona",
       "supportsTablet": false,
-      "buildNumber": "1",
+      "buildNumber": "3",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -31,7 +31,9 @@
         "backgroundColor": "#fbf5f2"
       }
     },
-    "plugins": [],
+    "plugins": [
+      "./plugins/withNoShakeToUndo"
+    ],
     "extra": {
       "eas": {
         "projectId": "1ee4aba3-f8e0-4271-a51b-d24452911355"
