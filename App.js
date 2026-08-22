@@ -22,6 +22,7 @@ const RC_KEY = Platform.select({
 
 export default function App() {
   const webref = useRef(null);
+  const premiumRef = useRef(false);
 
   // Push a state object into the page. The page may not have finished loading
   // yet, so it queues anything that arrives early (see __oriona_setStore).
@@ -64,8 +65,12 @@ export default function App() {
         Purchases.setLogLevel(LOG_LEVEL.WARN);
         await Purchases.configure({ apiKey: RC_KEY });
         const info = await Purchases.getCustomerInfo();
-        send({ premium: isActive(info) });
-        listener = Purchases.addCustomerInfoUpdateListener((i) => send({ premium: isActive(i) }));
+        premiumRef.current = isActive(info);
+        send({ premium: premiumRef.current });
+        listener = Purchases.addCustomerInfoUpdateListener((i) => {
+          premiumRef.current = isActive(i);
+          send({ premium: premiumRef.current });
+        });
         await pushOffering();
       } catch (e) {
         send({ ready: false, reason: 'init-failed' });
@@ -102,12 +107,17 @@ export default function App() {
     let msg;
     try { msg = JSON.parse(event.nativeEvent.data); } catch (e) { return; }
     if (!msg || !msg.type) return;
-    if (msg.type === 'buy') { send({ busy: true }); buy(); }
+    if (msg.type === 'hello') {
+      // The page just (re)declared its handler; replay the state it may have missed.
+      send({ premium: premiumRef.current });
+      pushOffering();
+    }
+    else if (msg.type === 'buy') { send({ busy: true }); buy(); }
     else if (msg.type === 'restore') { send({ busy: true }); restore(); }
     else if (msg.type === 'openUrl' && typeof msg.url === 'string' && /^https:\/\//.test(msg.url)) {
       Linking.openURL(msg.url);
     }
-  }, [buy, restore, send]);
+  }, [buy, restore, send, pushOffering]);
 
   // The in-app back gesture on Android maps to WebView history; no-op on iOS.
   useEffect(() => {

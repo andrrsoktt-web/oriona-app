@@ -1268,6 +1268,7 @@ window.__orionaStore=function(s){
   if(s.error==='unavailable')pwMsg(t('pw_unavailable'));
   pwRefresh();
 };
+if(NATIVE){try{nativeSend({type:'hello'});}catch(e){}}
 function togglePrem(){setPrem(!PREM);renderAccount();}
 /* ——— пол пользователя и тема оформления ——— */
 var GENDER=(function(){try{var v=localStorage.getItem('oriona-gender');if(v==='m'||v==='f')return v;}catch(e){}return 'f';})();
