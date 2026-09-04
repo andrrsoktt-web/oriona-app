@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 import Purchases, { LOG_LEVEL } from 'react-native-purchases';
+import * as Notifications from 'expo-notifications';
 
 // Oriona — the whole app is a single HTML file (astrology engine + UI + i18n)
 // rendered inside a native WebView. Everything is computed on the device.
@@ -13,6 +14,28 @@ import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 // back into the page.
 
 const ENTITLEMENT = 'plus';
+
+// Daily local reminder ("your forecast is ready"), scheduled fully on-device.
+const REMINDER_BODY = {
+  ru: 'Твой прогноз на сегодня готов ✨',
+  uk: 'Твій прогноз на сьогодні готовий ✨',
+  en: 'Your forecast for today is ready ✨',
+  es: 'Tu pronóstico de hoy está listo ✨',
+  fr: 'Ton horoscope du jour est prêt ✨',
+};
+
+async function setDailyReminder(on, lang) {
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    if (!on) return;
+    const perm = await Notifications.requestPermissionsAsync();
+    if (!perm.granted && !(perm.ios && perm.ios.status >= 2)) return;
+    await Notifications.scheduleNotificationAsync({
+      content: { title: 'Oriona', body: REMINDER_BODY[lang] || REMINDER_BODY.en, sound: false },
+      trigger: { hour: 9, minute: 30, repeats: true },
+    });
+  } catch (e) { /* reminders are best-effort */ }
+}
 
 const extra = (Constants.expoConfig && Constants.expoConfig.extra) || {};
 const RC_KEY = Platform.select({
@@ -116,6 +139,9 @@ export default function App() {
     else if (msg.type === 'restore') { send({ busy: true }); restore(); }
     else if (msg.type === 'openUrl' && typeof msg.url === 'string' && /^https:\/\//.test(msg.url)) {
       Linking.openURL(msg.url);
+    }
+    else if (msg.type === 'notify') {
+      setDailyReminder(!!msg.on, typeof msg.lang === 'string' ? msg.lang : 'en');
     }
   }, [buy, restore, send, pushOffering]);
 

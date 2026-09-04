@@ -19,7 +19,7 @@
     "ios": {
       "bundleIdentifier": "com.olyaursul.oriona",
       "supportsTablet": false,
-      "buildNumber": "9",
+      "buildNumber": "10",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -40,7 +40,8 @@
             "deploymentTarget": "15.1"
           }
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
