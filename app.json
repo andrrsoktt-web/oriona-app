@@ -41,7 +41,7 @@
           }
         }
       ],
-      "expo-notifications"
+      "./plugins/withNoPushEntitlement"
     ],
     "extra": {
       "eas": {
