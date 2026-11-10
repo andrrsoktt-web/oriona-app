@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Nordkryss",
+    "slug": "nordkryss",
+    "owner": "olya2026",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#bfe0f0",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#bfe0f0"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "com.olyaursul.nordkryss",
+      "supportsTablet": false,
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.olyaursul.nordkryss",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1d3557"
+      }
+    },
+    "plugins": [
+      ["expo-build-properties", { "ios": { "deploymentTarget": "15.1" } }]
+    ],
+    "extra": {
+      "eas": { "projectId": "f2d21025-b0ab-42a0-8478-28f23fecf51b" }
+    }
+  }
+}
