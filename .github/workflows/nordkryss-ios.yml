@@ -1,0 +1,51 @@
+name: Nordkryss iOS (build + TestFlight)
+
+on:
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: "Upload to TestFlight after the build"
+        required: true
+        default: "yes"
+        type: choice
+        options: ["yes", "no"]
+
+jobs:
+  ios:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nordkryss
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: nordkryss/package-lock.json
+
+      - run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          packager: npm
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build on EAS (waits for the result)
+        id: build
+        run: |
+          eas build --platform ios --profile production --non-interactive --wait --json > build.json
+          cat build.json
+          echo "id=$(node -e "const b=require('./build.json');console.log((Array.isArray(b)?b[0]:b).id)")" >> "$GITHUB_OUTPUT"
+        env:
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+
+      - name: Submit to TestFlight
+        if: ${{ github.event.inputs.submit == 'yes' }}
+        run: eas submit --platform ios --id "${{ steps.build.outputs.id }}" --non-interactive
+        env:
+          EXPO_APPLE_ID: ${{ secrets.EXPO_APPLE_ID }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
